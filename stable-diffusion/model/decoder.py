@@ -5,10 +5,10 @@ from attention import SelfAttention
 
 
 class VAE_AttentionBlock(nn.Module):
-    def __init__(self, in_channels: int):
+    def __init__(self, channels: int):
         super().__init__()
-        self.groupnorm = nn.GroupNorm(num_groups=32, num_channels=in_channels)
-        self.attention = SelfAttention(1, in_channels)
+        self.groupnorm = nn.GroupNorm(32, channels)
+        self.attention = SelfAttention(1, channels)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x has shape: bs, in_channels, h, w
@@ -71,7 +71,7 @@ class VAE_Decoder(nn.Sequential):
             nn.Conv2d(in_channels=4, out_channels=4, kernel_size=1, padding=0),
             nn.Conv2d(in_channels=4, out_channels=512, kernel_size=3, padding=1),
             VAE_ResidualBlock(in_channels=512, out_channels=512),
-            VAE_AttentionBlock(in_channels=512),
+            VAE_AttentionBlock(channels=512),
             VAE_ResidualBlock(in_channels=512, out_channels=512),
             VAE_ResidualBlock(in_channels=512, out_channels=512),
             VAE_ResidualBlock(in_channels=512, out_channels=512),
@@ -92,7 +92,7 @@ class VAE_Decoder(nn.Sequential):
             # bs, 512, h/4, w/4 -> bs, 512, h/2, w/2
             nn.Upsample(scale_factor=2),
 
-            nn.Conv2d(in_channels=512, out_channels=256, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, padding=1),
 
             VAE_ResidualBlock(512, 256),
             VAE_ResidualBlock(256, 256),

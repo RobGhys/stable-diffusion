@@ -1,12 +1,9 @@
-from typing import overload
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.distributed.tensor.parallel.input_reshard import input_reshard
-from torch.nn import Module
 
-from decoder import VAE_attention_block, VAE_residual_block
+from decoder import VAE_AttentionBlock, VAE_ResidualBlock
+
 
 class VAE_Encoder(nn.Sequential):
     def __init__(self):
@@ -16,41 +13,41 @@ class VAE_Encoder(nn.Sequential):
             nn.Conv2d(in_channels=3, out_channels=128, kernel_size=3, padding=1),
 
             # bs, 128, h, w -> bs, 128, h, w
-            VAE_residual_block(in_channels=128, out_channels=128),
+            VAE_ResidualBlock(in_channels=128, out_channels=128),
             # bs, 128, h, w -> bs, 128, h, w
-            VAE_residual_block(in_channels=128, out_channels=128),
+            VAE_ResidualBlock(in_channels=128, out_channels=128),
 
             # bs, 128, h, w -> bs, 128, h/2, w/2
             nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=2, padding=0),
 
             # bs, 128, h, w -> bs, 256, h/2, w/2
-            VAE_residual_block(in_channels=128, out_channels=256),
+            VAE_ResidualBlock(in_channels=128, out_channels=256),
             # bs, 256, h, w -> bs, 256, h/2, w/2
-            VAE_residual_block(in_channels=256, out_channels=256),
+            VAE_ResidualBlock(in_channels=256, out_channels=256),
 
             # bs, 256, h/2, w/2 -> bs, 256, h/4, w/4
             nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=2, padding=0),
 
             # bs, 256, h/4, w/4 -> bs, 512, h/4, w/4
-            VAE_residual_block(in_channels=256, out_channels=512),
+            VAE_ResidualBlock(in_channels=256, out_channels=512),
             # bs, 512, h/4, w/4 -> bs, 512, h/4, w/4
-            VAE_residual_block(in_channels=512, out_channels=512),
+            VAE_ResidualBlock(in_channels=512, out_channels=512),
 
             # bs, 512, h/4, w/4 -> bs, 512, h/8, w/8
             nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=2, padding=0),
 
             # bs, 512, h/8, w/8 -> bs, 512, h/8, w/8
-            VAE_residual_block(in_channels=512, out_channels=512),
+            VAE_ResidualBlock(in_channels=512, out_channels=512),
             # bs, 512, h/8, w/8 -> bs, 512, h/8, w/8
-            VAE_residual_block(in_channels=512, out_channels=512),
+            VAE_ResidualBlock(in_channels=512, out_channels=512),
             # bs, 512, h/8, w/8 -> bs, 512, h/8, w/8
-            VAE_residual_block(in_channels=512, out_channels=512),
+            VAE_ResidualBlock(in_channels=512, out_channels=512),
 
             # bs, 512, h/8, w/8 -> bs, 512, h/8, w/8
-            VAE_attention_block(in_channels=512, out_channels=512),
+            VAE_AttentionBlock(channels=512),
 
             # bs, 512, h/8, w/8 -> bs, 512, h/8, w/8
-            VAE_residual_block(in_channels=512, out_channels=512),
+            VAE_ResidualBlock(in_channels=512, out_channels=512),
 
             # bs, 512, h/8, w/8 -> bs, 512, h/8, w/8
             nn.GroupNorm(num_groups=32, num_channels=512),
@@ -60,7 +57,7 @@ class VAE_Encoder(nn.Sequential):
 
             # Encoder Bottleneck
             # bs, 512, h/8, w/8 -> bs, 8, h/8, w/8
-            nn.Conv2d(in_channels=512, out_channels=8, kernel_size=3, padding=0),
+            nn.Conv2d(in_channels=512, out_channels=8, kernel_size=3, padding=1),
 
             # bs, 8, h/8, w/8 -> bs, 8, h/8, w/8
             nn.Conv2d(in_channels=8, out_channels=8, kernel_size=1, padding=0),

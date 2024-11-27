@@ -5,11 +5,11 @@ from attention import SelfAttention
 
 
 class CLIPEmbedding(nn.Module):
-    def __init__(self, n_vocab: int, n_embeddings: int, n_tokens: int):
+    def __init__(self, n_vocab: int, n_embd: int, n_token: int):
         super().__init__()
 
-        self.token_embedding = nn.Embedding(n_vocab, n_embeddings)
-        self.position_embedding = nn.Parameter(torch.zeros(n_tokens, n_embeddings))
+        self.token_embedding = nn.Embedding(n_vocab, n_embd)
+        self.position_embedding = nn.Parameter(torch.zeros(n_token, n_embd))
 
     def forward(self, tokens):
         # bs, seq_len -> bs, seq_len, dim
@@ -20,14 +20,14 @@ class CLIPEmbedding(nn.Module):
 
 
 class CLIPLayer(nn.Module):
-    def __init__(self, n_heads: int, n_embeddings: int):
+    def __init__(self, n_heads: int, n_embd: int):
         super().__init__()
 
-        self.layernorm_1 = nn.LayerNorm(n_embeddings)
-        self.attention = SelfAttention(n_heads, n_embeddings)
-        self.layernorm_2 = nn.LayerNorm(n_embeddings)
-        self.linear_1 = nn.Linear(n_embeddings, n_embeddings * 4)
-        self.linear_2 = nn.Linear(n_embeddings * 4, n_embeddings)
+        self.layernorm_1 = nn.LayerNorm(n_embd)
+        self.attention = SelfAttention(n_heads, n_embd)
+        self.layernorm_2 = nn.LayerNorm(n_embd)
+        self.linear_1 = nn.Linear(n_embd, n_embd * 4)
+        self.linear_2 = nn.Linear(n_embd * 4, n_embd)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # bs, seq_len, dim
@@ -51,8 +51,9 @@ class CLIPLayer(nn.Module):
 
 class CLIP(nn.Module):
     def __init__(self):
-        self.embeddings = CLIPEmbedding(49408, 768, 77)
-        self.layers = nn.Module([
+        super().__init__()
+        self.embedding = CLIPEmbedding(49408, 768, 77)
+        self.layers = nn.ModuleList([
             CLIPLayer(12, 768) for i in range(12)
         ])
 
@@ -61,7 +62,8 @@ class CLIP(nn.Module):
     def forward(self, tokens: torch.LongTensor) -> torch.FloatTensor:
         tokens = tokens.type(torch.long)
         # bs, seq_len -> bs, seq_len, dim
-        state = self.embeddings(tokens)
+        state = self.embedding(tokens)
+
         for layer in self.layers:
             state = layer(state)
         # bs, seq_len,dim
